@@ -2,37 +2,52 @@
 
 Deep-Neural Network for Brain Tumor Classification in Pediatric Patients
 
-## Tumor Categories
+## Tumor Classification Categories
 
 -   `DIPG` - Diffuse Intrinsic Pontine Glioma
 -   `EP` - Ependymomas
 -   `MB` - Medulloblastoma
 -   `PILO` - Pilocytic
--   `Pediatric`
+-   `Normal` - Healthy Brain
 
 ## Packages and Versions
 
--   `python` - version 3.6
--   `tensorflow` - version 1.12
--   `keras` - version 2.1.5
--   `keras-applications` - version 1.0.7
+| **Package Name**      | **Version** |
+| --------------------- | ----------- |
+| `python`              | 3.6         |
+| `tensorflow`          | 1.12        |
+| `keras`               | 2.1.5       |
+| `keras-applications`  | 1.0.7       |
+| `keras-preprocessing` | 1.0.9       |
+| `matplotlib`          | 3.0.2       |
+| `numpy`               | 1.15.4      |
+| `pydicom`             | 1.2.2       |
+| `nibabel`             | 2.3.3       |
 
 ## Files
 
 ## Folders
 
--   `data` - Folder for storing the raw DICOM images
+-   `source` - Folder for storing the raw DICOM/NII images
     -   `DIPG`
-        -   `Seattle`
+        -   `Seattle` - test images
         -   `Stanford`
     -   `PILO`
         -   `Stanford`
     -   `MB`
-        -   `Seattle`
+        -   `Seattle` - test images
         -   `Stanford`
     -   `EP`
-        -   `Seattle`
+        -   `Seattle` - test images
         -   `Stanford`
+    -   `Normal` - Healthy Children Brain Scans
+    -   `katie_annotated_metadata` - metadata for the Tumor dataset
+    -   `Task01_Brain Tumor` - From the BRATS 2018 dataset
+        -   `imagesTr` - Training images
+        -   `imagesTs` - Testing images
+        -   `labelTr` - Labels for Training images (For segmentation)(ignored)
+        -   `dataset.json` - metadata for this dataset
+    -   `flipped_clinical_NormalPedBrainAge_StanfordCohort.csv` - metadata for healthy brains
 -   `docs` - Folder for storing static content and documents
 -   `weights` - Folder to store all model weights
 -   `models` - Folder to store all model codes
