@@ -20,9 +20,17 @@ Deep-Neural Network for Brain Tumor Classification in Pediatric Patients
 | `keras-applications`  | 1.0.7       |
 | `keras-preprocessing` | 1.0.9       |
 | `matplotlib`          | 3.0.2       |
+| `imageio`             | 2.4.1       |
+| `Pillow*`             | 5.4.1       |
+| `scikit-learn`        | 0.20.2      |
+| `scikit-image`        | 0.14.1      |
 | `numpy`               | 1.15.4      |
-| `pydicom`             | 1.2.2       |
+| `pandas`              | 0.24.1      |
+| `pydicom*`            | 1.2.2       |
 | `nibabel`             | 2.3.3       |
+| `progressbar`         | 2.5         |
+
+`*` - See note below regarding OpenJPEG
 
 ## Files
 
@@ -52,6 +60,22 @@ Deep-Neural Network for Brain Tumor Classification in Pediatric Patients
 -   `weights` - Folder to store all model weights
 -   `models` - Folder to store all model codes
 -   `logs` - Folder to store all logs
+
+## [NOTE] JPEG2000 decoding
+
+Pillow needs to be installed with support for JPEG2000 lossless compression, which is the compression used in some the MRI DICOM scans. In order to do that, install OpenJPEG before installing Pillow. The steps to install OpenJPEG are -
+0.  Install cmake to build OpenJPEG (see [this](https://pachterlab.github.io/kallisto/local_build.html) for local user installation and avoiding sudo in step 7 and 8)
+1.  `git clone https://github.com/uclouvain/openjpeg.git`
+2.  `cd openjpeg`
+3.  `mkdir build`
+4.  `cd build`
+5.  `cmake .. -DCMAKE_BUILD_TYPE=Release`
+6.  `make`
+7.  `sudo make install`
+8.  `sudo make clean`
+
+Restart the session.
+Now install Pillow, followed by pydicom
 
 ## [NOTE] Keras Version issues
 
