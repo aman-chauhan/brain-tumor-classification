@@ -1,6 +1,6 @@
 # import libraries
 # transfer learning model
-from keras.applications.vgg19 import VGG19
+from keras.applications.vgg19 import VGG19, preprocess_input
 # keras layers
 from keras.layers import BatchNormalization
 from keras.layers import Conv2DTranspose
@@ -298,6 +298,22 @@ def get_autoencoder(input_size, name):
                           bias_initializer='he_uniform',
                           name='output')(decoder)
     return Model(inputs=input_layer, outputs=output_layer, name=name)
+
+
+def get_preprocess():
+    '''
+    Returns the reference to the preprocess function of the transfer layers.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    function
+        reference to the preprocess function of the transfer layers.
+    '''
+    return preprocess_input
 
 
 def make_docs(name):
