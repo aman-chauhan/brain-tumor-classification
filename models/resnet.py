@@ -49,7 +49,8 @@ def get_resnet(num_of_layers, input_size):
     model = Model(inputs=resnet.layers[0].input,
                   outputs=resnet.layers[i].output,
                   name='resnet')
-    model.trainable = False
+    for layer in model.layers:
+        layer.trainable = False
     model.compile('adadelta', 'mse')
     return model
 

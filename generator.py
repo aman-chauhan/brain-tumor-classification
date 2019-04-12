@@ -48,6 +48,6 @@ class AutoEncoderGenerator(Sequence):
             if self.augment:
                 seed = self.prng.randint(0, 1000)
                 img = self.datagen.random_transform(img, seed=seed)
-            Y[i] = (img - 255.0) / 255.0
+            Y[i] = img / 255.0
             X[i] = np.repeat(img, 3, axis=-1)
         return (self.preprocess(X), Y)

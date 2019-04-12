@@ -48,7 +48,8 @@ def get_densenet(num_of_layers, input_size):
     model = Model(inputs=densenet.layers[0].input,
                   outputs=densenet.layers[i].output,
                   name='densenet')
-    model.trainable = False
+    for layer in model.layers:
+        layer.trainable = False
     model.compile('adadelta', 'mse')
     return model
 

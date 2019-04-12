@@ -48,7 +48,8 @@ def get_xception(num_of_layers, input_size):
     model = Model(inputs=xception.layers[0].input,
                   outputs=xception.layers[i].output,
                   name='xception')
-    model.trainable = False
+    for layer in model.layers:
+        layer.trainable = False
     model.compile('adadelta', 'mse')
     return model
 

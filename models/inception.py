@@ -48,7 +48,8 @@ def get_inception(num_of_layers, input_size):
     model = Model(inputs=inception.layers[0].input,
                   outputs=inception.layers[i].output,
                   name='inception')
-    model.trainable = False
+    for layer in model.layers:
+        layer.trainable = False
     model.compile('adadelta', 'mse')
     return model
 

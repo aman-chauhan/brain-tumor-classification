@@ -2,6 +2,7 @@ from generator import AutoEncoderGenerator
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import EarlyStopping
 from keras.callbacks import CSVLogger
+from keras.models import load_model
 from keras import backend as K
 
 import pandas as pd
@@ -35,20 +36,20 @@ def build_autoencoder(key, img_size):
         from models.vgg import get_autoencoder, get_preprocess
     else:
         from models.xception import get_autoencoder, get_preprocess
-    model = get_autoencoder(256, model_d[key])
-    preprocess = get_preprocess()
+
     if not os.path.exists(os.path.join('weights', 'ae_{}.h5'.format(key))):
         print('Generating new {} model.'.format(key))
+        model = get_autoencoder(None, model_d[key])
+        model.compile(optimizer='adadelta', loss='mse', metrics=['mse', 'mae'])
     else:
         print('Fetching {} model from logs.'.format(key))
         model_path = os.path.join('weights', 'ae_{}.h5'.format(key))
         log_path = os.path.join('logs', 'ae_{}.csv'.format(key))
-        model.load_weights(model_path)
+        model = load_model(model_path)
         logs = pd.read_csv(log_path)
         epoch = len(logs)
         del logs
-    model.compile(optimizer='adadelta', loss='mse', metrics=['mse', 'mae'])
-    return (model, preprocess, epoch)
+    return (model, get_preprocess(), epoch)
 
 
 def autoencoder(key, batch_size):

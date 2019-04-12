@@ -49,7 +49,8 @@ def get_vgg(num_of_layers, input_size):
     model = Model(inputs=vgg.layers[0].input,
                   outputs=vgg.layers[i].output,
                   name='vgg')
-    model.trainable = False
+    for layer in model.layers:
+        layer.trainable = False
     model.compile('adadelta', 'mse')
     return model
 
