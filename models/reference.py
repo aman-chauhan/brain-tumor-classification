@@ -3,6 +3,7 @@
 # transfer learning model
 from keras.applications.resnet50 import ResNet50, preprocess_input
 # keras layers
+from keras.layers import GlobalMaxPooling2D
 from keras.layers import BatchNormalization
 from keras.layers import Conv2DTranspose
 from keras.layers import UpSampling2D
@@ -210,6 +211,50 @@ def get_scale_block(prev_shape, name, id):
                  name='{}_{}'.format(name, id))
 
 
+# fully connected block
+def get_fully_connected_block(prev_shape, units, dropout_rate, name, id):
+    '''
+    Returns a Fully Connected Block with specified units and dropout rate.
+
+    This block returns a Dense layer, followed by BatchNormalization,
+    ReLu Activation and Dropout.
+
+    Parameters
+    ----------
+    prev_shape: a tuple of int
+        shape of the previous layer output, or output of K.int_shape
+        on the previous layer
+    units: int
+        number of units in the Dense Layer
+    dropout_rate: float
+        dropout rate for the Dense Layer during training
+    name: str
+        the name of the model defined in the calling function
+    id: int
+        the number of this block in namespace of model in calling function
+
+    Returns
+    -------
+    Model
+        a Keras Model instance for Fully Connected block
+    '''
+    name = '{}_fc'.format(name)
+    input_layer = Input(batch_shape=prev_shape,
+                        name='{}_{}_input'.format(name, id))
+    fc = Dense(units=units, kernel_initializer='he_uniform',
+               bias_initializer='he_uniform',
+               name='{}_{}_fc'.format(name, id))(input_layer)
+    norm = BatchNormalization(scale=False,
+                              name='{}_{}_norm'.format(name, id))(fc)
+    relu = Activation(activation='relu',
+                      name='{}_{}_relu'.format(name, id))(norm)
+    output_layer = Dropout(rate=dropout_rate,
+                           name='{}_{}_drop'.format(name, id))(relu)
+    return Model(inputs=input_layer,
+                 outputs=output_layer,
+                 name='{}_{}'.format(name, id))
+
+
 # encoder
 def get_encoder(prev_shape, num_of_layers, name):
     '''
@@ -333,6 +378,38 @@ def get_autoencoder(name):
                           kernel_initializer='he_uniform',
                           bias_initializer='he_uniform',
                           name='output')(decoder)
+    return Model(inputs=input_layer, outputs=output_layer, name=name)
+
+
+# Classifier
+def get_classifier(name):
+    '''
+    Returns the Classifier as a Keras Model
+
+    This function builds a Classifier using the Encoder and Fully Connected
+    Blocks.
+
+    Parameters
+    ----------
+    name: str
+        the name of the model defined in the calling function
+
+    Returns
+    -------
+    Model
+        a Keras model instance for the configured Classifier
+    '''
+    input_layer = Input(batch_shape=(None, 256, 256, 3), name='input')
+    encoder = get_encoder(K.int_shape(input_layer), 3, name)(input_layer)
+    features = GlobalMaxPooling2D(name='features')(encoder)
+    fc_block1 = get_fully_connected_block(K.int_shape(features),
+                                          256, 0.2, name, 1)(features)
+    fc_block2 = get_fully_connected_block(K.int_shape(fc_block1),
+                                          256, 0.2, name, 2)(fc_block1)
+    output_layer = Dense(units=5, activation='softmax',
+                         kernel_initializer='he_uniform',
+                         bias_initializer='he_uniform',
+                         name='classes')(fc_block2)
     return Model(inputs=input_layer, outputs=output_layer, name=name)
 
 
