@@ -1,5 +1,6 @@
 # import libraries
 from keras.preprocessing.image import ImageDataGenerator
+from keras.preprocessing.sequence import pad_sequences
 from keras.utils import Sequence, to_categorical
 import numpy as np
 import os
@@ -99,3 +100,36 @@ class ClassifierGenerator(Sequence):
             X[i] = np.repeat(img, 3, axis=-1)
             Y[i] = row[2]
         return (self.preprocess(X), to_categorical(Y, num_classes=5))
+
+
+# Paraclassifier Generator
+class ParaclassifierGenerator(Sequence):
+    def __init__(self, key, files, batch_size, shuffle):
+        self.key = key
+        self.files = files
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.prng = np.random.RandomState(42)
+        self.on_epoch_end()
+
+    def on_epoch_end(self):
+        self.indexes = np.arange(len(self.files))
+        if self.shuffle == True:
+            self.prng.shuffle(self.indexes)
+
+    def __len__(self):
+        return int(np.floor(len(self.files) / self.batch_size))
+
+    def __getitem__(self, index):
+        indexes = self.indexes[index * self.batch_size:(index + 1) * self.batch_size]
+        list_files_temp = [self.files[k] for k in indexes]
+        return self.__data_generation(list_files_temp)
+
+    def __data_generation(self, files):
+        X = []
+        Y = np.empty((self.batch_size))
+        for i, row in enumerate(files):
+            X.append(np.load(row[0].format(self.key))['data'].tolist())
+            Y[i] = row[1]
+        return (pad_sequences(X, dtype='float32'),
+                to_categorical(Y, num_classes=5))

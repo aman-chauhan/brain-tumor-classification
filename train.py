@@ -1,4 +1,6 @@
-from generator import AutoEncoderGenerator, ClassifierGenerator
+from generator import ParaclassifierGenerator
+from generator import AutoEncoderGenerator
+from generator import ClassifierGenerator
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import EarlyStopping
 from keras.callbacks import CSVLogger
@@ -116,6 +118,7 @@ def autoencoder(key, batch_size):
                         validation_data=valid_generator,
                         use_multiprocessing=True, workers=4,
                         initial_epoch=epoch)
+    del model
 
 
 def classifier(key, batch_size, dropout_rate):
@@ -140,6 +143,27 @@ def classifier(key, batch_size, dropout_rate):
                         validation_data=valid_generator,
                         use_multiprocessing=True, workers=4,
                         initial_epoch=epoch)
+    del model
+
+
+def paraclassifier(key, batch_size):
+    K.clear_session()
+    model, epoch = build_paraclassifier(key)
+    train = get_filepaths(os.path.join('meta', 'para_train.csv'))
+    valid = get_filepaths(os.path.join('meta', 'para_valid.csv'))
+    train_generator = ParaclassifierGenerator(key, train, batch_size, True)
+    valid_generator = ParaclassifierGenerator(key, valid, batch_size, True)
+    model_path = os.path.join('weights', 'para_{}.h5'.format(key))
+    log_path = os.path.join('logs', 'para_{}.csv'.format(key))
+    checkpoint = ModelCheckpoint(filepath=model_path, save_best_only=True)
+    earlystop = EarlyStopping(monitor='val_loss', patience=5, mode='min')
+    csvlogger = CSVLogger(filename=log_path, append=True)
+    model.fit_generator(generator=train_generator, epochs=100, verbose=1,
+                        callbacks=[csvlogger, checkpoint, earlystop],
+                        validation_data=valid_generator,
+                        use_multiprocessing=True, workers=4,
+                        initial_epoch=epoch)
+    del model
 
 
 if __name__ == '__main__':
@@ -149,3 +173,5 @@ if __name__ == '__main__':
     elif args[1] == 'classifier':
         for i in range(1, 6, 1):
             classifier(args[2], int(args[3]), i / 10)
+    elif args[1] == 'paraclassifier':
+        paraclassifier(args[2], int(args[3]))

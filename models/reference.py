@@ -14,6 +14,7 @@ from keras.layers import Lambda
 from keras.layers import Conv2D
 from keras.layers import Input
 from keras.layers import Dense
+from keras.layers import LSTM
 # keras utils
 from keras.models import Model
 from keras import backend as K
@@ -410,6 +411,37 @@ def get_classifier(name):
                          kernel_initializer='he_uniform',
                          bias_initializer='he_uniform',
                          name='classes')(fc_block2)
+    return Model(inputs=input_layer, outputs=output_layer, name=name)
+
+
+# Paraclassifier
+def get_paraclassifier(name):
+    '''
+    Returns the Paraclassifier as a Keras Model
+
+    This function builds a LSTM based Paraclassifier on top of predictions
+    from the Classifier using LSTM blocks.
+
+    Parameters
+    ----------
+    name: str
+        the name of the model defined in the calling function
+
+    Returns
+    -------
+    Model
+        a Keras Model instance for the configured Paraclassifier
+    '''
+    input_layer = Input(batch_shape=(None, None, 256), name='parainput')
+    lstm1 = LSTM(units=128, return_sequences=True,
+                 name='{}_lstm_{}'.format(name, 1))(input_layer)
+    lstm2 = LSTM(units=64, return_sequences=True,
+                 name='{}_lstm_{}'.format(name, 2))(lstm1)
+    lstm3 = LSTM(units=32, name='{}_lstm_{}'.format(name, 3))(lstm2)
+    output_layer = Dense(units=5, activation='softmax',
+                         kernel_initializer='he_uniform',
+                         bias_initializer='he_uniform',
+                         name='paraclass')(lstm3)
     return Model(inputs=input_layer, outputs=output_layer, name=name)
 
 
