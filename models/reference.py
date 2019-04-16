@@ -5,7 +5,7 @@ from keras.applications.resnet50 import ResNet50, preprocess_input
 # keras layers
 from keras.layers import GlobalMaxPooling2D
 from keras.layers import BatchNormalization
-from keras.layers import Conv2DTranspose
+from keras.layers import MaxPooling2D
 from keras.layers import UpSampling2D
 from keras.layers import Concatenate
 from keras.layers import Activation
@@ -93,16 +93,14 @@ def get_dense_block(prev_shape, count, name, id):
                       bias_initializer='he_uniform',
                       name='{}_{}_conv_{}a'.format(name, id, i))
         conv1 = conv(input_layer if i == 1 else layer)
-        norm1 = BatchNormalization(scale=False,
-                                   name='{}_{}_norm_{}a'.format(name, id, i))(conv1)
+        norm1 = BatchNormalization(name='{}_{}_norm_{}a'.format(name, id, i))(conv1)
         relu1 = Activation(activation='relu',
                            name='{}_{}_relu_{}a'.format(name, id, i))(norm1)
         conv2 = Conv2D(filters=16, kernel_size=3, strides=1, padding='same',
                        kernel_initializer='he_uniform',
                        bias_initializer='he_uniform',
                        name='{}_{}_conv_{}b'.format(name, id, i))(relu1)
-        norm2 = BatchNormalization(scale=False,
-                                   name='{}_{}_norm_{}b'.format(name, id, i))(conv2)
+        norm2 = BatchNormalization(name='{}_{}_norm_{}b'.format(name, id, i))(conv2)
         relu2 = Activation(activation='relu',
                            name='{}_{}_relu_{}b'.format(name, id, i))(norm2)
         concat = Concatenate(name='{}_{}_concat_{}'.format(name, id, i))
@@ -152,19 +150,22 @@ def get_reduce_block(prev_shape, reduce_filters, reduce, name, id):
                       kernel_initializer='he_uniform',
                       bias_initializer='he_uniform',
                       name='{}_{}_a_conv'.format(name, id))(input_layer)
-    norm_a = BatchNormalization(scale=False,
-                                name='{}_{}_a_norm'.format(name, id))(reduce_a)
+    norm_a = BatchNormalization(name='{}_{}_a_norm'.format(name, id))(reduce_a)
     relu_a = Activation(activation='relu',
                         name='{}_{}_a_relu'.format(name, id))(norm_a)
     reduce_b = Conv2D(filters=reduce_filters, kernel_size=3,
-                      strides=2 if reduce else 1, padding='same',
+                      strides=1, padding='same',
                       kernel_initializer='he_uniform',
                       bias_initializer='he_uniform',
                       name='{}_{}_b_conv'.format(name, id))(relu_a)
-    norm_b = BatchNormalization(scale=False,
-                                name='{}_{}_b_norm'.format(name, id))(reduce_b)
+    norm_b = BatchNormalization(name='{}_{}_b_norm'.format(name, id))(reduce_b)
     output_layer = Activation(activation='relu',
                               name='{}_{}_b_relu'.format(name, id))(norm_b)
+    if reduce:
+        output_layer = MaxPooling2D(pool_size=(3, 3),
+                                    strides=(2, 2),
+                                    padding='same',
+                                    name='{}_{}_b_pool'.format(name, id))(output_layer)
     return Model(inputs=input_layer,
                  outputs=output_layer,
                  name='{}_{}'.format(name, id))
@@ -173,12 +174,10 @@ def get_reduce_block(prev_shape, reduce_filters, reduce, name, id):
 # increase block
 def get_scale_block(prev_shape, name, id):
     '''
-    Returns a Tranposed Conv2D block as a Keras Model
+    Returns a Conv2D block and UpSampling2D layer as a Keras Model
 
-    This block performs a Tranposed Convolution or Deconvolution operation,
-    leading to doubling the X-Y dimension of the batch. Popularised by the
-    papers, by Dumoulin et al in https://arxiv.org/abs/1603.07285v1 and Zeiler
-    et al in https://www.matthewzeiler.com/mattzeiler/deconvolutionalnetworks.pdf
+    This block performs a Convolution followed by UpSampling transformation,
+    leading to doubling the X-Y dimension of the batch.
 
     Parameters
     ----------
@@ -198,15 +197,16 @@ def get_scale_block(prev_shape, name, id):
     name = '{}_increase'.format(name)
     input_layer = Input(batch_shape=prev_shape,
                         name='{}_{}_input'.format(name, id))
-    transpose = Conv2DTranspose(filters=prev_shape[-1], kernel_size=3,
-                                strides=2, padding='same',
-                                kernel_initializer='he_uniform',
-                                bias_initializer='he_uniform',
-                                name='{}_{}_transpose'.format(name, id))(input_layer)
-    norm = BatchNormalization(scale=False,
-                              name='{}_{}_norm'.format(name, id))(transpose)
-    output_layer = Activation(activation='relu',
-                              name='{}_{}_relu'.format(name, id))(norm)
+    conv = Conv2D(filters=K.int_shape(input_layer)[-1],
+                  kernel_size=3, strides=1, padding='same',
+                  kernel_initializer='he_uniform',
+                  bias_initializer='he_uniform',
+                  name='{}_{}_conv'.format(name, id))(input_layer)
+    norm = BatchNormalization(name='{}_{}_norm'.format(name, id))(conv)
+    relu = Activation(activation='relu',
+                      name='{}_{}_relu'.format(name, id))(norm)
+    output_layer = UpSampling2D(size=(2, 2),
+                                name='{}_{}_upsm'.format(name, id))(relu)
     return Model(inputs=input_layer,
                  outputs=output_layer,
                  name='{}_{}'.format(name, id))
@@ -245,8 +245,7 @@ def get_fully_connected_block(prev_shape, units, dropout_rate, name, id):
     fc = Dense(units=units, kernel_initializer='he_uniform',
                bias_initializer='he_uniform',
                name='{}_{}_fc'.format(name, id))(input_layer)
-    norm = BatchNormalization(scale=False,
-                              name='{}_{}_norm'.format(name, id))(fc)
+    norm = BatchNormalization(name='{}_{}_norm'.format(name, id))(fc)
     relu = Activation(activation='relu',
                       name='{}_{}_relu'.format(name, id))(norm)
     output_layer = Dropout(rate=dropout_rate,
