@@ -136,7 +136,7 @@ def classifier(key, batch_size, dropout_rate):
     model_path = os.path.join('weights', 'clf_{}_{}.h5'.format(key, dropout_rate))
     log_path = os.path.join('logs', 'clf_{}_{}.csv'.format(key, dropout_rate))
     checkpoint = ModelCheckpoint(filepath=model_path, save_best_only=True)
-    earlystop = EarlyStopping(monitor='val_loss', patience=5, mode='min')
+    earlystop = EarlyStopping(monitor='val_loss', patience=10, mode='min')
     csvlogger = CSVLogger(filename=log_path, append=True)
     model.fit_generator(generator=train_generator, epochs=100, verbose=1,
                         callbacks=[csvlogger, checkpoint, earlystop],
@@ -156,7 +156,7 @@ def paraclassifier(key, batch_size):
     model_path = os.path.join('weights', 'para_{}.h5'.format(key))
     log_path = os.path.join('logs', 'para_{}.csv'.format(key))
     checkpoint = ModelCheckpoint(filepath=model_path, save_best_only=True)
-    earlystop = EarlyStopping(monitor='val_loss', patience=5, mode='min')
+    earlystop = EarlyStopping(monitor='val_loss', patience=10, mode='min')
     csvlogger = CSVLogger(filename=log_path, append=True)
     model.fit_generator(generator=train_generator, epochs=100, verbose=1,
                         callbacks=[csvlogger, checkpoint, earlystop],
