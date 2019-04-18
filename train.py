@@ -107,7 +107,7 @@ def autoencoder(key, batch_size):
     train_generator = AutoEncoderGenerator(preprocess, train, min_max,
                                            batch_size, img_size, True, True)
     valid_generator = AutoEncoderGenerator(preprocess, valid, min_max,
-                                           batch_size, img_size, True, True)
+                                           batch_size, img_size, True, False)
     model_path = os.path.join('weights', 'ae_{}.h5'.format(key))
     log_path = os.path.join('logs', 'ae_{}.csv'.format(key))
     checkpoint = ModelCheckpoint(filepath=model_path, save_best_only=True)
@@ -132,7 +132,7 @@ def classifier(key, batch_size, dropout_rate):
     train_generator = ClassifierGenerator(preprocess, train, min_max,
                                           batch_size, img_size, True, True)
     valid_generator = ClassifierGenerator(preprocess, valid, min_max,
-                                          batch_size, img_size, True, True)
+                                          batch_size, img_size, True, False)
     model_path = os.path.join('weights', 'clf_{}_{}.h5'.format(key, dropout_rate))
     log_path = os.path.join('logs', 'clf_{}_{}.csv'.format(key, dropout_rate))
     checkpoint = ModelCheckpoint(filepath=model_path, save_best_only=True)
