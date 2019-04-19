@@ -96,6 +96,41 @@ def build_classifier(key, dropout_rate):
     return (model, get_preprocess(), epoch)
 
 
+def build_paraclassifier(key):
+    model = None
+    epoch = 0
+    model_d = {'densenet': 'dn121', 'inceptionresnet': 'irv2',
+               'inception': 'iv3', 'resnet': 'r50',
+               'vgg': 'vgg', 'xception': 'x'}
+    if key == 'densenet':
+        from models.densenet import get_paraclassifier
+    elif key == 'inceptionresnet':
+        from models.inceptionresnet import get_paraclassifier
+    elif key == 'inception':
+        from models.inception import get_paraclassifier
+    elif key == 'resnet':
+        from models.resnet import get_paraclassifier
+    elif key == 'vgg':
+        from models.vgg import get_paraclassifier
+    else:
+        from models.xception import get_paraclassifier
+
+    if not os.path.exists(os.path.join('weights', 'para_{}.h5'.format(key))):
+        print('Generating new {} model.'.format(key))
+        model = get_paraclassifier(model_d[key])
+        model.compile(optimizer='adadelta', loss='categorical_crossentropy',
+                      metrics=['categorical_accuracy'])
+    else:
+        print('Fetching {} model from logs.'.format(key))
+        model_path = os.path.join('weights', 'para_{}.h5'.format(key))
+        log_path = os.path.join('logs', 'para_{}.csv'.format(key))
+        model = load_model(model_path)
+        logs = pd.read_csv(log_path)
+        epoch = len(logs)
+        del logs
+    return (model, epoch)
+
+
 def autoencoder(key, batch_size):
     K.clear_session()
     model, preprocess, epoch = build_autoencoder(key)
