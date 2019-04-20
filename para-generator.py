@@ -16,7 +16,7 @@ from keras import backend as K
 import gc
 
 
-config = {'resnet': 0.1, 'inception': 0.5, 'inceptionresnet': 0.1, 'densenet': 0.4, 'xception':0.4, 'vgg': 0.5}
+config = {'resnet': 0.4, 'inception': 0.3, 'inceptionresnet': 0.3, 'densenet': 0.2, 'xception': 0.3, 'vgg': 0.3}
 
 
 paraclassifier_path = os.path.join('data', 'paraclassifier')
@@ -59,13 +59,13 @@ def build_classifier(key, dropout_rate):
 
 df = pd.read_csv(os.path.join('meta', 'clf_train.csv'))
 train_files = np.hstack((np.expand_dims(df.groupby(['filepath']).mean().index.values, axis=-1),
-                         df.groupby(['filepath']).mean().values[:,1:].astype('int'))).tolist()
+                         df.groupby(['filepath']).mean().values[:, 1:].astype('int'))).tolist()
 df = pd.read_csv(os.path.join('meta', 'clf_valid.csv'))
 valid_files = np.hstack((np.expand_dims(df.groupby(['filepath']).mean().index.values, axis=-1),
-                         df.groupby(['filepath']).mean().values[:,1:].astype('int'))).tolist()
+                         df.groupby(['filepath']).mean().values[:, 1:].astype('int'))).tolist()
 df = pd.read_csv(os.path.join('meta', 'clf_test.csv'))
 test_files = np.hstack((np.expand_dims(df.groupby(['filepath']).mean().index.values, axis=-1),
-                        df.groupby(['filepath']).mean().values[:,1:].astype('int'))).tolist()
+                        df.groupby(['filepath']).mean().values[:, 1:].astype('int'))).tolist()
 
 
 fp = open(os.path.join('meta', 'para_train.csv'), 'w')
@@ -96,7 +96,7 @@ min_max = json.load(meta_file)
 for key in config.keys():
     dropout_rate = config[key]
     model, preprocess = build_classifier(key, dropout_rate)
-    
+
     cnt = 0
     bar = ProgressBar(maxval=len(train_files), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
     for i in range(len(train_files)):
@@ -109,7 +109,7 @@ for key in config.keys():
         cnt += 1
         bar.update(cnt)
     bar.finish()
-    
+
     cnt = 0
     bar = ProgressBar(maxval=len(valid_files), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
     for i in range(len(valid_files)):
@@ -122,7 +122,7 @@ for key in config.keys():
         cnt += 1
         bar.update(cnt)
     bar.finish()
-    
+
     cnt = 0
     bar = ProgressBar(maxval=len(test_files), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
     for i in range(len(test_files)):
@@ -135,6 +135,6 @@ for key in config.keys():
         cnt += 1
         bar.update(cnt)
     bar.finish()
-    
+
     del model
     del preprocess
