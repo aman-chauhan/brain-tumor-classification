@@ -81,7 +81,7 @@ def build_classifier(key, dropout_rate):
         if os.path.exists(os.path.join('weights', 'ae_{}.h5'.format(key))):
             model.load_weights(os.path.join('weights', 'ae_{}.h5'.format(key)),
                                by_name=True)
-        model.compile(optimizer='adadelta', loss='mse',
+        model.compile(optimizer='adadelta', loss='categorical_crossentropy',
                       metrics=['categorical_accuracy'])
     else:
         print('Fetching {} model from logs.'.format(key))
@@ -142,11 +142,11 @@ def autoencoder(key, batch_size):
     train_generator = AutoEncoderGenerator(preprocess, train, min_max,
                                            batch_size, img_size, True, True)
     valid_generator = AutoEncoderGenerator(preprocess, valid, min_max,
-                                           batch_size, img_size, True, True)
+                                           batch_size, img_size, True, False)
     model_path = os.path.join('weights', 'ae_{}.h5'.format(key))
     log_path = os.path.join('logs', 'ae_{}.csv'.format(key))
     checkpoint = ModelCheckpoint(filepath=model_path, save_best_only=True)
-    earlystop = EarlyStopping(monitor='val_loss', patience=5, mode='min')
+    earlystop = EarlyStopping(monitor='val_loss', patience=10, mode='min')
     csvlogger = CSVLogger(filename=log_path, append=True)
     model.fit_generator(generator=train_generator, epochs=100, verbose=1,
                         callbacks=[csvlogger, checkpoint, earlystop],
@@ -167,7 +167,7 @@ def classifier(key, batch_size, dropout_rate):
     train_generator = ClassifierGenerator(preprocess, train, min_max,
                                           batch_size, img_size, True, True)
     valid_generator = ClassifierGenerator(preprocess, valid, min_max,
-                                          batch_size, img_size, True, True)
+                                          batch_size, img_size, True, False)
     model_path = os.path.join('weights', 'clf_{}_{}.h5'.format(key, dropout_rate))
     log_path = os.path.join('logs', 'clf_{}_{}.csv'.format(key, dropout_rate))
     checkpoint = ModelCheckpoint(filepath=model_path, save_best_only=True)
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     if args[1] == 'autoencoder':
         autoencoder(args[2], int(args[3]))
     elif args[1] == 'classifier':
-        for i in range(1, 6, 1):
+        for i in range(1, 6):
             classifier(args[2], int(args[3]), i / 10)
     elif args[1] == 'paraclassifier':
         paraclassifier(args[2], int(args[3]))
