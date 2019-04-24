@@ -1,0 +1,1 @@
+{"resnet": 0.1, "inception": 0.2, "inceptionresnet": 0.4, "densenet": 0.5, "xception": 0.5, "vgg": 0.4}
