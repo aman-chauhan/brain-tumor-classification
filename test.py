@@ -100,7 +100,7 @@ def paraclassifier():
 
     config = {'resnet', 'inception', 'inceptionresnet',
               'densenet', 'xception', 'vgg'}
-    for key in config.keys():
+    for key in config:
         result = []
         print('Fetching Results for {}'.format(key))
         df = pd.read_csv(os.path.join('logs', 'para_{}.csv'.format(key)))
