@@ -25,7 +25,7 @@ for key in config.keys():
         df = pd.read_csv(os.path.join('logs', 'clf_{}_{}.csv'.format(key, i / 10)))
         if df['val_loss'].min() < min_val:
             min_val = df['val_loss'].min()
-            min_val_resnet = i / 10
+            config[key] = i / 10
         del df
 
 
@@ -154,4 +154,4 @@ for key in config.keys():
     del model
     del preprocess
 
-json.dump(config, open(os.path.join('logs', 'clf_config.json')))
+json.dump(config, open(os.path.join('logs', 'clf_config.json'), 'w'))

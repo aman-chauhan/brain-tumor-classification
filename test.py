@@ -6,6 +6,7 @@ from keras import backend as K
 import pandas as pd
 import numpy as np
 import json
+import sys
 import os
 import gc
 
@@ -99,7 +100,7 @@ def paraclassifier():
 
     config = {'resnet', 'inception', 'inceptionresnet',
               'densenet', 'xception', 'vgg'}
-    for key in config.keys():
+    for key in config:
         result = []
         print('Fetching Results for {}'.format(key))
         df = pd.read_csv(os.path.join('logs', 'para_{}.csv'.format(key)))
