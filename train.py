@@ -54,7 +54,7 @@ def classifier(key, batch_size):
     model.fit_generator(generator=train_generator, epochs=100, verbose=1,
                         callbacks=[csvlogger, checkpoint, earlystop],
                         validation_data=valid_generator,
-                        use_multiprocessing=True, workers=4,
+                        use_multiprocessing=False,
                         initial_epoch=epoch)
     del model
 
