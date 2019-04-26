@@ -192,156 +192,6 @@ groups = list(filter(lambda x: all([len(y.split('-')) == 6 for y in x]) and len(
 se_mb_set = set(reduce(lambda x, y: x + y, groups))
 
 
-# ## AutoEncoder Data Preprocessing
-#
-# ***Using the BRATS public dataset and the normal healthy brain dataset***
-
-# In[ ]:
-
-
-brats_path = os.path.join('source', 'Task01_BrainTumour')
-brats_train = os.path.join(brats_path, 'imagesTr')
-brats_valid = os.path.join(brats_path, 'imagesTs')
-
-healthy_path = os.path.join('source', 'Normal')
-
-
-# In[ ]:
-
-
-autoencode_files = []
-autoencode_types = []
-
-for _, _, files in os.walk(brats_train):
-    files = sorted(map(lambda x: os.path.join(brats_train, x),
-                       filter(lambda x: not x.startswith('.'), files)))
-    autoencode_files.extend(files)
-    autoencode_types.extend([1 for _ in range(len(files))])
-
-for _, _, files in os.walk(brats_valid):
-    files = sorted(map(lambda x: os.path.join(brats_valid, x),
-                       filter(lambda x: not x.startswith('.'), files)))
-    autoencode_files.extend(files)
-    autoencode_types.extend([1 for _ in range(len(files))])
-
-for _, _, files in os.walk(healthy_path):
-    files = set(map(lambda x: os.path.join(healthy_path, x),
-                    filter(lambda x: not x.startswith('.'), files)))
-    files = sorted(files.intersection(normal_set))
-    autoencode_files.extend(files)
-    autoencode_types.extend([2 for _ in range(len(files))])
-
-train_path, valid_path, train_type, valid_type = train_test_split(autoencode_files,
-                                                                  autoencode_types,
-                                                                  test_size=0.2,
-                                                                  random_state=seed,
-                                                                  stratify=autoencode_types)
-
-
-# In[ ]:
-
-
-autoencode_meta = {'min': float('inf'), 'max': float('-inf')}
-
-
-# In[ ]:
-
-
-data_train_path = os.path.join(autoencode_path, 'train')
-
-fp = open(os.path.join('meta', 'ae_train.csv'), 'w')
-fp.write('filepath, plane\n')
-
-cnt = 0
-bar = ProgressBar(maxval=len(train_path), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
-
-for path, method in list(zip(train_path, train_type)):
-    img = None
-    if method == 1:
-        img = nib.load(path).get_fdata()[:, :, 25:125, 3]
-        img = resize(img, (256, 256), mode='constant', clip=True, preserve_range=True)
-        img = img.transpose((2, 0, 1))
-    else:
-        img = np.load(path)['T2 ax']
-        dim1 = max(img.shape[:2]) - img.shape[0]
-        dim2 = max(img.shape[:2]) - img.shape[1]
-        if dim1 != 0 or dim2 != 0:
-            pad = np.pad(img, ((math.ceil(dim1 / 2.0), math.floor(dim1 / 2.0)),
-                               (math.ceil(dim2 / 2.0), math.floor(dim2 / 2.0)), (0, 0)),
-                         mode='constant', constant_values=0)
-            img = resize(pad, (256, 256), mode='constant', clip=True, preserve_range=True)
-        img = img.transpose((2, 0, 1))
-        img = np.rot90(img, axes=(2, 1))
-
-    img = (img - img.mean()) / img.std()
-
-    min_img = img.min()
-    max_img = img.max()
-    if min_img < autoencode_meta['min']:
-        autoencode_meta['min'] = min_img
-    if max_img > autoencode_meta['max']:
-        autoencode_meta['max'] = max_img
-
-    np.savez_compressed(os.path.join(data_train_path, '{:04d}'.format(cnt)), data=img)
-    for k in range(img.shape[0]):
-        fp.write('{}, {}\n'.format(os.path.join(data_train_path, '{:04d}.npz'.format(cnt)), k))
-    cnt += 1
-    bar.update(cnt)
-
-bar.finish()
-fp.close()
-
-
-# In[ ]:
-
-
-autoencode_meta['min'] = float(autoencode_meta['min'])
-autoencode_meta['max'] = float(autoencode_meta['max'])
-with open(os.path.join('meta', 'ae_meta.json'), 'w') as fp:
-    json.dump(autoencode_meta, fp)
-
-
-# In[ ]:
-
-
-data_valid_path = os.path.join(autoencode_path, 'valid')
-
-fp = open(os.path.join('meta', 'ae_valid.csv'), 'w')
-fp.write('filepath, plane\n')
-
-cnt = 0
-bar = ProgressBar(maxval=len(valid_path), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
-
-for path, method in list(zip(valid_path, valid_type)):
-    img = None
-    if method == 1:
-        img = nib.load(path).get_fdata()[:, :, 25:125, 3]
-        img = resize(img, (256, 256), mode='constant', clip=True, preserve_range=True)
-        img = img.transpose((2, 0, 1))
-    else:
-        img = np.load(path)['T2 ax']
-        dim1 = max(img.shape[:2]) - img.shape[0]
-        dim2 = max(img.shape[:2]) - img.shape[1]
-        if dim1 != 0 or dim2 != 0:
-            pad = np.pad(img, ((math.ceil(dim1 / 2.0), math.floor(dim1 / 2.0)),
-                               (math.ceil(dim2 / 2.0), math.floor(dim2 / 2.0)), (0, 0)),
-                         mode='constant', constant_values=0)
-            img = resize(pad, (256, 256), mode='constant', clip=True, preserve_range=True)
-        img = img.transpose((2, 0, 1))
-        img = np.rot90(img, axes=(2, 1))
-
-    img = (img - img.mean()) / img.std()
-
-    np.savez_compressed(os.path.join(data_valid_path, '{:04d}'.format(cnt)), data=img)
-    for k in range(img.shape[0]):
-        fp.write('{}, {}\n'.format(os.path.join(data_valid_path, '{:04d}.npz'.format(cnt)), k))
-    cnt += 1
-    bar.update(cnt)
-
-bar.finish()
-fp.close()
-
-
 # ## Classifier Data Preprocessing
 #
 # ***Using the Stanford dataset***
@@ -488,7 +338,7 @@ class_meta = {'min': float('inf'), 'max': float('-inf')}
 data_train_path = os.path.join(classifier_path, 'train')
 
 fp = open(os.path.join('meta', 'clf_train.csv'), 'w')
-fp.write('filepath, plane, class\n')
+fp.write('filepath, class\n')
 
 cnt = 0
 bar = ProgressBar(maxval=len(train_path), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
@@ -530,8 +380,7 @@ for path, method in list(zip(train_path, train_type)):
         class_meta['max'] = max_img
 
     np.savez_compressed(os.path.join(data_train_path, '{:04d}'.format(cnt)), data=img)
-    for k in range(img.shape[0]):
-        fp.write('{}, {}, {}\n'.format(os.path.join(data_train_path, '{:04d}.npz'.format(cnt)), k, method))
+    fp.write('{}, {}\n'.format(os.path.join(data_train_path, '{:04d}.npz'.format(cnt)), method))
     cnt += 1
     bar.update(cnt)
 
@@ -554,7 +403,7 @@ with open(os.path.join('meta', 'clf_meta.json'), 'w') as fp:
 data_valid_path = os.path.join(classifier_path, 'valid')
 
 fp = open(os.path.join('meta', 'clf_valid.csv'), 'w')
-fp.write('filepath, plane, class\n')
+fp.write('filepath, class\n')
 
 cnt = 0
 bar = ProgressBar(maxval=len(valid_path), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
@@ -589,8 +438,7 @@ for path, method in list(zip(valid_path, valid_type)):
     img = (img - img.mean()) / img.std()
 
     np.savez_compressed(os.path.join(data_valid_path, '{:04d}'.format(cnt)), data=img)
-    for k in range(img.shape[0]):
-        fp.write('{}, {}, {}\n'.format(os.path.join(data_valid_path, '{:04d}.npz'.format(cnt)), k, method))
+    fp.write('{}, {}\n'.format(os.path.join(data_valid_path, '{:04d}.npz'.format(cnt)), method))
     cnt += 1
     bar.update(cnt)
 
@@ -604,7 +452,7 @@ fp.close()
 data_test_path = os.path.join(classifier_path, 'test')
 
 fp = open(os.path.join('meta', 'clf_test.csv'), 'w')
-fp.write('filepath, plane, class\n')
+fp.write('filepath, class\n')
 
 cnt = 0
 bar = ProgressBar(maxval=len(test_path), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
@@ -639,8 +487,7 @@ for path, method in list(zip(test_path, test_type)):
     img = (img - img.mean()) / img.std()
 
     np.savez_compressed(os.path.join(data_test_path, '{:04d}'.format(cnt)), data=img)
-    for k in range(img.shape[0]):
-        fp.write('{}, {}, {}\n'.format(os.path.join(data_test_path, '{:04d}.npz'.format(cnt)), k, method))
+    fp.write('{}, {}\n'.format(os.path.join(data_train_path, '{:04d}.npz'.format(cnt)), method))
     cnt += 1
     bar.update(cnt)
 
