@@ -101,7 +101,7 @@ def build_paraclassifier(key):
     epoch = 0
     model_d = {'densenet': 'dn121', 'inceptionresnet': 'irv2',
                'inception': 'iv3', 'resnet': 'r50',
-               'vgg': 'vgg', 'xception': 'x'}
+               'vgg': 'vgg', 'xception': 'x', 'ensemble': 'ensemble'}
     if key == 'densenet':
         from models.densenet import get_paraclassifier
     elif key == 'inceptionresnet':

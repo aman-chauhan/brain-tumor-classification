@@ -128,8 +128,22 @@ class ParaclassifierGenerator(Sequence):
     def __data_generation(self, files):
         X = []
         Y = np.empty((self.batch_size))
-        for i, row in enumerate(files):
-            X.append(np.load(row[0].format(self.key))['data'].tolist())
-            Y[i] = row[1]
+        if self.key != 'ensemble':
+            for i, row in enumerate(files):
+                X.append(np.load(row[0].format(self.key))['data'].tolist())
+                Y[i] = row[1]
+        else:
+            keys = ['densenet', 'inceptionresnet', 'inception',
+                    'resnet', 'vgg', 'xception']
+            for i, row in enumerate(files):
+                T = None
+                for key in keys:
+                    if T is None:
+                        T = np.load(row[0].format(key))['data']
+                    else:
+                        T += np.load(row[0].format(key))['data']
+                T /= len(keys)
+                X.append(T.tolist())
+                Y[i] = row[1]
         return (pad_sequences(X, dtype='float32'),
                 to_categorical(Y, num_classes=5))
