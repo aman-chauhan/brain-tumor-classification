@@ -39,7 +39,7 @@ def build_paraclassifier(key):
     model = None
     model_d = {'densenet': 'dn121', 'inceptionresnet': 'irv2',
                'inception': 'iv3', 'resnet': 'r50',
-               'vgg': 'vgg', 'xception': 'x'}
+               'vgg': 'vgg', 'xception': 'x', 'ensemble': 'ensemble'}
     if key == 'densenet':
         from models.densenet import get_paraclassifier
     elif key == 'inceptionresnet':
@@ -99,8 +99,8 @@ def paraclassifier():
     test = pd.read_csv(os.path.join('meta', 'para_test.csv')).values.tolist()
 
     config = {'resnet', 'inception', 'inceptionresnet',
-              'densenet', 'xception', 'vgg'}
-    for key in config:
+              'densenet', 'xception', 'vgg', 'ensemble'}
+    for key in sorted(config):
         result = []
         print('Fetching Results for {}'.format(key))
         df = pd.read_csv(os.path.join('logs', 'para_{}.csv'.format(key)))
