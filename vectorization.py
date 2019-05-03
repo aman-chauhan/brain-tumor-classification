@@ -1,4 +1,8 @@
+# import libraries
 from progressbar import ProgressBar, Bar, Percentage
+from keras.models import load_model
+from keras.models import Model
+from keras import backend as K
 import pandas as pd
 import numpy as np
 import math
@@ -8,15 +12,10 @@ import os
 import gc
 
 
+# set seed
 seed = 42
 
-
-from keras.models import load_model
-from keras.models import Model
-from keras import backend as K
-import gc
-
-
+# config dict to store optimal hyperparameters
 config = {'resnet': None, 'inception': None, 'inceptionresnet': None,
           'densenet': None, 'xception': None, 'vgg': None}
 for key in config.keys():
@@ -32,6 +31,7 @@ for key in config.keys():
 _ = gc.collect()
 
 
+# create the paraclassifier directories
 paraclassifier_path = os.path.join('data', 'paraclassifier')
 if not os.path.exists(paraclassifier_path):
     os.mkdir(paraclassifier_path)
@@ -44,6 +44,22 @@ if not os.path.exists(paraclassifier_path):
 
 
 def build_classifier(key, dropout_rate):
+    '''
+    Function to build classifier model with specified key and dropout rate
+    and load the model weights from logs.
+
+    Parameters
+    ----------
+    key: string
+        the key to determine which transfer learning layers to use
+    dropout_rate: float
+        the dropout rate for the Fully Connected Layers.
+
+    Returns
+    -------
+    tuple of Model and function
+        returns the Model and the associated preprocessing function
+    '''
     preprocess = None
     model = None
     model_d = {'densenet': 'dn121', 'inceptionresnet': 'irv2',
@@ -70,17 +86,21 @@ def build_classifier(key, dropout_rate):
     return (model, get_preprocess())
 
 
+# fetch train files
 df = pd.read_csv(os.path.join('meta', 'clf_train.csv'))
 train_files = np.hstack((np.expand_dims(df.groupby(['filepath']).mean().index.values, axis=-1),
                          df.groupby(['filepath']).mean().values[:, 1:].astype('int'))).tolist()
+# fetch validation files
 df = pd.read_csv(os.path.join('meta', 'clf_valid.csv'))
 valid_files = np.hstack((np.expand_dims(df.groupby(['filepath']).mean().index.values, axis=-1),
                          df.groupby(['filepath']).mean().values[:, 1:].astype('int'))).tolist()
+# fetch test files
 df = pd.read_csv(os.path.join('meta', 'clf_test.csv'))
 test_files = np.hstack((np.expand_dims(df.groupby(['filepath']).mean().index.values, axis=-1),
                         df.groupby(['filepath']).mean().values[:, 1:].astype('int'))).tolist()
 
 
+# write the train files which can be referenced for paraclassifier training
 fp = open(os.path.join('meta', 'para_train.csv'), 'w')
 fp.write('filepath, class\n')
 train_path = os.path.join(os.path.join(os.path.join('data', 'paraclassifier'), '{}'), 'train')
@@ -88,6 +108,7 @@ for i in range(len(train_files)):
     fp.write('{}, {}\n'.format(os.path.join(train_path, train_files[i][0].split(os.sep)[-1]), train_files[i][1]))
 fp.close()
 
+# write the validation files which can be referenced for paraclassifier training
 fp = open(os.path.join('meta', 'para_valid.csv'), 'w')
 fp.write('filepath, class\n')
 valid_path = os.path.join(os.path.join(os.path.join('data', 'paraclassifier'), '{}'), 'valid')
@@ -95,6 +116,7 @@ for i in range(len(valid_files)):
     fp.write('{}, {}\n'.format(os.path.join(valid_path, valid_files[i][0].split(os.sep)[-1]), valid_files[i][1]))
 fp.close()
 
+# write the test files which can be referenced for paraclassifier training
 fp = open(os.path.join('meta', 'para_test.csv'), 'w')
 fp.write('filepath, class\n')
 test_path = os.path.join(os.path.join(os.path.join('data', 'paraclassifier'), '{}'), 'test')
@@ -103,15 +125,18 @@ for i in range(len(test_files)):
 fp.close()
 
 
+# fetch the classifier minima and maxima
 meta_file = open(os.path.join('meta', 'clf_meta.json'), 'r')
 min_max = json.load(meta_file)
 
+# generate vectors for each type of model
 for key in config.keys():
     dropout_rate = config[key]
     model, preprocess = build_classifier(key, dropout_rate)
 
     print('Generating Vectors for {}'.format(key))
 
+    # generate training vectors
     cnt = 0
     bar = ProgressBar(maxval=len(train_files), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
     for i in range(len(train_files)):
@@ -125,6 +150,7 @@ for key in config.keys():
         bar.update(cnt)
     bar.finish()
 
+    # generate validation vectors
     cnt = 0
     bar = ProgressBar(maxval=len(valid_files), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
     for i in range(len(valid_files)):
@@ -138,6 +164,7 @@ for key in config.keys():
         bar.update(cnt)
     bar.finish()
 
+    # generate test vectors
     cnt = 0
     bar = ProgressBar(maxval=len(test_files), widgets=[Bar('=', '[', ']'), ' ', Percentage()]).start()
     for i in range(len(test_files)):
@@ -154,4 +181,5 @@ for key in config.keys():
     del model
     del preprocess
 
+# dump the best hyperparameter configuration in logs
 json.dump(config, open(os.path.join('logs', 'clf_config.json'), 'w'))
