@@ -12,6 +12,22 @@ import gc
 
 
 def build_classifier(key, dropout_rate):
+    '''
+    Function to build classifier model with specified key and dropout rate
+    and load the model weights from logs.
+
+    Parameters
+    ----------
+    key: string
+        the key to determine which transfer learning layers to use
+    dropout_rate: float
+        the dropout rate for the Fully Connected Layers.
+
+    Returns
+    -------
+    tuple of Model and function
+        returns the Model and the associated preprocessing function
+    '''
     preprocess = None
     model = None
     model_d = {'densenet': 'dn121', 'inceptionresnet': 'irv2',
@@ -36,6 +52,20 @@ def build_classifier(key, dropout_rate):
 
 
 def build_paraclassifier(key):
+    '''
+    Function to build paraclassifier model with specified key and load the model
+    weights from logs.
+
+    Parameters
+    ----------
+    key: string
+        the key to determine which type of weights to load
+
+    Returns
+    -------
+    Model
+        returns the Model loaded with the weights specified by key
+    '''
     model = None
     model_d = {'densenet': 'dn121', 'inceptionresnet': 'irv2',
                'inception': 'iv3', 'resnet': 'r50',
@@ -59,8 +89,11 @@ def build_paraclassifier(key):
 
 
 def classifier(config):
+    # list for storing results for each type of model
     results = []
+    # test files
     test = pd.read_csv(os.path.join('meta', 'clf_test.csv')).values.tolist()
+    # load the meta data for classifiers (min and max)
     meta_file = open(os.path.join('meta', 'clf_meta.json'), 'r')
     min_max = json.load(meta_file)
     img_size = 256
@@ -69,16 +102,21 @@ def classifier(config):
         result = []
         print('Fetching Results for {} with {} dropout'.format(key, config[key]))
         df = pd.read_csv(os.path.join('logs', 'clf_{}_{}.csv'.format(key, config[key])))
+        # append training and validation results
         result.append(key)
         result.append(df.loc[df['val_loss'].idxmin()]['categorical_accuracy'])
         result.append(df.loc[df['val_loss'].idxmin()]['val_categorical_accuracy'])
         del df
 
         K.clear_session()
+        # fetch model and preprocessing function
         model, preprocess = build_classifier(key, config[key])
+        # test generator
         test_generator = ClassifierGenerator(preprocess, test, min_max,
                                              48, img_size, True, False)
+        # fetch predictions
         pred = model.evaluate_generator(test_generator)
+        # append test results
         result.append(pred[1])
         results.append(result)
 
@@ -87,15 +125,19 @@ def classifier(config):
         del test_generator
         _ = gc.collect()
 
+    # Create dataframe from results
     df = pd.DataFrame.from_records(results, columns=['Name', 'Training Accuracy',
                                                      'Validation Accuracy',
                                                      'Test Accuracy'])
+    # Save Dataframe
     df.to_csv(os.path.join('logs', 'clf_results.csv'))
     print(df)
 
 
 def paraclassifier():
+    # list for storing results for each type of model
     results = []
+    # test files
     test = pd.read_csv(os.path.join('meta', 'para_test.csv')).values.tolist()
 
     config = {'resnet', 'inception', 'inceptionresnet',
@@ -104,15 +146,20 @@ def paraclassifier():
         result = []
         print('Fetching Results for {}'.format(key))
         df = pd.read_csv(os.path.join('logs', 'para_{}.csv'.format(key)))
+        # append training and validation results
         result.append(key)
         result.append(df.loc[df['val_loss'].idxmin()]['categorical_accuracy'])
         result.append(df.loc[df['val_loss'].idxmin()]['val_categorical_accuracy'])
         del df
 
         K.clear_session()
+        # fetch model
         model = build_paraclassifier(key)
+        # test generator
         test_generator = ParaclassifierGenerator(key, test, 32, True)
+        # fetch predictions
         pred = model.evaluate_generator(test_generator)
+        # append test results
         result.append(pred[1])
         results.append(result)
 
@@ -120,9 +167,11 @@ def paraclassifier():
         del test_generator
         _ = gc.collect()
 
+    # Create dataframe from results
     df = pd.DataFrame.from_records(results, columns=['Name', 'Training Accuracy',
                                                      'Validation Accuracy',
                                                      'Test Accuracy'])
+    # Save Dataframe
     df.to_csv(os.path.join('logs', 'para_results.csv'))
     print(df)
 
