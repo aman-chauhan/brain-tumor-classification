@@ -402,7 +402,7 @@ def get_classifier(name):
     '''
     input_layer = Input(batch_shape=(None, 256, 256, 3), name='input')
     encoder = get_encoder(K.int_shape(input_layer), 3, name)(input_layer)
-    features = GlobalMaxPooling2D(name='features')(encoder)
+    features = GlobalMaxPooling2D(name='{}_features'.format(name))(encoder)
     fc_block1 = get_fully_connected_block(K.int_shape(features),
                                           256, 0.2, name, 1)(features)
     fc_block2 = get_fully_connected_block(K.int_shape(fc_block1),
@@ -499,4 +499,18 @@ def make_docs(name):
     plot_model(model.layers[1].layers[3], to_file=os.path.join(path, 'dense_8.png'),
                show_shapes=True, show_layer_names=True, rankdir='TB')
     plot_model(model.layers[2].layers[2], to_file=os.path.join(path, 'increase.png'),
+               show_shapes=True, show_layer_names=True, rankdir='TB')
+
+    del model
+    K.clear_session()
+    model = get_classifier(name)
+    plot_model(model, to_file=os.path.join(path, 'classifier.png'),
+               show_shapes=True, show_layer_names=True, rankdir='TB')
+    plot_model(model.layers[3], to_file=os.path.join(path, 'fully_connected_block.png'),
+               show_shapes=True, show_layer_names=True, rankdir='TB')
+
+    del model
+    K.clear_session()
+    model = get_paraclassifier(name)
+    plot_model(model, to_file=os.path.join(path, 'paraclassifier.png'),
                show_shapes=True, show_layer_names=True, rankdir='TB')
